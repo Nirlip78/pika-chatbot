@@ -47,9 +47,11 @@ function App() {
   const [inputValue, setInputValue] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const [attachedDoc, setAttachedDoc] = useState(null);
   
   const messagesEndRef = useRef(null);
   const chatInputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
 
@@ -74,6 +76,21 @@ function App() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeSession.history, isThinking]);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setAttachedDoc({
+        name: file.name,
+        content: event.target.result
+      });
+    };
+    reader.readAsText(file);
+    e.target.value = ''; // Reset input
+  };
 
   const handleNewChat = () => {
     const newId = Date.now().toString();
@@ -101,15 +118,31 @@ function App() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isThinking) return;
+    if ((!inputValue.trim() && !attachedDoc) || isThinking) return;
 
-    const userMsg = { role: 'user', content: inputValue.trim() };
+    let finalContent = inputValue.trim();
+    if (attachedDoc) {
+      if (finalContent) {
+        finalContent = `I have attached a document named "${attachedDoc.name}".\n\nDocument Content:\n---\n${attachedDoc.content}\n---\n\nMy prompt: ${finalContent}`;
+      } else {
+        finalContent = `I have attached a document named "${attachedDoc.name}".\n\nDocument Content:\n---\n${attachedDoc.content}\n---\n\nPlease analyze this document.`;
+      }
+    }
+
+    const userMsg = { 
+      role: 'user', 
+      content: finalContent,
+      displayContent: inputValue.trim() || 'Uploaded a document.',
+      attachmentName: attachedDoc?.name
+    };
+
     const updatedHistory = [...activeSession.history, userMsg];
     
     // Update title if it's the first message
     let updatedTitle = activeSession.title;
     if (activeSession.history.length === 0) {
-      updatedTitle = inputValue.trim().slice(0, 20) + (inputValue.length > 20 ? '...' : '');
+      const firstText = inputValue.trim() || attachedDoc?.name || 'New Conversation';
+      updatedTitle = firstText.slice(0, 20) + (firstText.length > 20 ? '...' : '');
     }
 
     setSessions(sessions.map(s => 
@@ -118,11 +151,14 @@ function App() {
         : s
     ));
     setInputValue('');
+    setAttachedDoc(null);
     setIsThinking(true);
 
     try {
       let fullBotResponse = '';
-      await callOllamaStream(selectedModel, updatedHistory, (chunk, fullText) => {
+      const apiMessages = updatedHistory.map(m => ({ role: m.role, content: m.content }));
+      
+      await callOllamaStream(selectedModel, apiMessages, (chunk, fullText) => {
         fullBotResponse = fullText;
         // Update history in real-time
         setSessions(prev => prev.map(s => 
@@ -287,8 +323,14 @@ function App() {
                       </div>
                     )}
                     <div className="msg-bubble">
+                      {msg.attachmentName && (
+                        <div className="attachment-chip-msg">
+                          <FileText size={14} />
+                          <span>{msg.attachmentName}</span>
+                        </div>
+                      )}
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {msg.content}
+                        {msg.displayContent !== undefined ? msg.displayContent : msg.content}
                       </ReactMarkdown>
                     </div>
                   </div>
@@ -316,9 +358,29 @@ function App() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="input-bar">
-            <div className="input-wrap">
-              <textarea 
+          <div className="input-bar-container">
+            {attachedDoc && (
+              <div className="attachment-preview">
+                <div className="attachment-name">
+                  <FileText size={14} />
+                  {attachedDoc.name}
+                  <button className="remove-attachment" onClick={() => setAttachedDoc(null)}><Trash2 size={14}/></button>
+                </div>
+              </div>
+            )}
+            <div className="input-bar">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                style={{ display: 'none' }} 
+                onChange={handleFileUpload}
+                accept=".txt,.md,.csv,.json,.js,.py,.html,.css"
+              />
+              <button className="attach-btn" onClick={() => fileInputRef.current?.click()} disabled={isThinking} title="Attach Document">
+                <FileText size={20} />
+              </button>
+              <div className="input-wrap">
+                <textarea 
                 ref={chatInputRef}
                 className="chat-input" 
                 rows="1"
@@ -333,9 +395,10 @@ function App() {
                 }}
               ></textarea>
             </div>
-            <button className="send-btn" onClick={handleSendMessage} disabled={isThinking || !inputValue.trim()}>
+            <button className="send-btn" onClick={handleSendMessage} disabled={isThinking || (!inputValue.trim() && !attachedDoc)}>
               <Send size={20} />
             </button>
+            </div>
           </div>
         </main>
       </div>

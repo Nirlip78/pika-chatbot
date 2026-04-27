@@ -373,12 +373,46 @@ html, body, #root {
 .thinking-label { font-size: 12px; color: var(--text-muted); margin-left: 4px; font-style: italic; }
 
 /* ── INPUT BAR ── */
-.input-bar {
-  padding: 16px 20px;
-  display: flex; align-items: flex-end; gap: 10px;
+.input-bar-container {
+  display: flex;
+  flex-direction: column;
   background: rgba(13,13,26,0.7); backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
 }
+.attachment-preview {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 20px 0; color: var(--text-muted); font-size: 13px; font-weight: 500;
+}
+.attachment-name {
+  background: rgba(167,139,250,0.15); border: 1px solid rgba(167,139,250,0.3);
+  padding: 4px 10px; border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 6px; color: var(--purple);
+}
+.remove-attachment {
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s; margin-left: 4px;
+}
+.remove-attachment:hover { color: var(--red); }
+.attachment-chip-msg {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.2); padding: 6px 10px; border-radius: var(--radius-sm);
+  font-size: 12px; margin-bottom: 8px; color: rgba(255,255,255,0.9);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.input-bar {
+  padding: 16px 20px;
+  display: flex; align-items: flex-end; gap: 10px;
+}
+.attach-btn {
+  width: 50px; height: 50px; border-radius: var(--radius-md);
+  background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1.5px solid var(--border); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s ease; flex-shrink: 0;
+}
+.attach-btn:hover { background: rgba(255,255,255,0.1); color: var(--purple); border-color: rgba(167,139,250,0.5); }
+.attach-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .input-wrap { flex: 1; position: relative; }
 .chat-input {
   width: 100%; background: rgba(255,255,255,0.05);

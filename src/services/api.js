@@ -1,11 +1,10 @@
 // src/services/api.js
 
 const OLLAMA_URL = '/api/chat';
-const OLLAMA_HOST = '/ollama-root';
 
 export async function checkOllamaStatus() {
   try {
-    const res = await fetch(OLLAMA_HOST);
+    const res = await fetch('/api/tags');
     return res.ok;
   } catch {
     return false;
